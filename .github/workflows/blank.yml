@@ -1,0 +1,203 @@
+install.packages("rmarkdown")
+getwd()
+setwd("C:/Users/dell/Desktop/cyclistic folder/")
+getwd()
+getwd()
+setwd("C:/Users/dell/Documents/cyclistic folder/202210-divvy-tripdata.csv")
+getwd()
+saveRDS(X202210_divvy_tripdata,"202210_divvy_tripdata.rds")
+DataTrip<-readRDS("202210_divvy_tripdata.rds")
+View(DataTrip)
+#Glimpse of Data
+glimpse(X202210_divvy_tripdata)
+#Missing data
+trip<-X202210_divvy_tripdata %>% 
+  filter(!complete.cases(.)
+  )
+View(trip)
+#remove duplicates
+trip_1<-distinct(X202210_divvy_tripdata)
+View(trip_1)
+#Renaming Columns for consistency
+trip_1<-trip_1 %>% 
+  rename(bikes=rideable_type,
+         Users=member_casual
+         )
+View(trip_1)
+#Converting column type-bikes and users
+trip_1<-trip_1 %>% 
+  mutate(bikes=as_factor(bikes),
+         Users=as_factor(Users),
+         started_at=ymd_hms(as_datetime(started_at)),
+         ended_at=ymd_hms(as_datetime(ended_at))
+         )
+glimpse(trip_1)
+View(trip_1)
+#Create extra columns based on started_at and ended_at date-time column
+trip_2<-trip_1 %>% 
+  mutate(
+         Hours_Begin=hour(started_at),
+         Week_day=wday(started_at,label = T,abbr = F),
+         Month=month(started_at,label = T,abbr = F),
+         Day=day(started_at),
+         Week=strftime(started_at,format = "%V"),
+         Trip_Time = difftime(ended_at,started_at,units = "mins")
+  )
+glimpse(trip_2)
+View(trip_2)
+#Filtering data based on trip_time of 1 min to 1440 mins 
+trip_3<-trip_2 %>% 
+  filter(between(Trip_Time,1,1440))
+str(trip_3)
+View(trip_3)
+head(trip_3,10)
+#Data Summary
+summary(trip_3)
+#Conclusion 
+#Based on the summary, there are members:341270 and casual:203883. The field name formallyrideable_types
+#now bikes have three categories classic_bikes:210222, electric_bikes:322603 and docked_bikes:12328
+#Saturday of the weekdays and the month of October provided the highest values of 107663 and 545153 respctively.
+#Creating Data frames for analysis
+Trips_time_data_frame<-trip_3 %>% 
+  drop_na(end_lat,end_lng) %>% 
+  select(ride_id,Users,bikes,Hours_Begin,Week_day,Month,Day,Week,Trip_Time)
+colSums(is.na(Trips_time_data_frame))
+View(Trips_time_data_frame)
+Trip_point_data_frame<-trip_3 %>% 
+  select(ride_id,start_station_name,end_station_name,start_lat,end_lat,start_lng,end_lng,Users,Trip_Time) %>% 
+  drop_na(start_station_name,end_station_name)
+View(Trip_point_data_frame)
+colSums(is.na(Trip_point_data_frame))
+#Data Visualization
+#Graphs on Users and hour of day
+library(ggplot2)
+ride_hour<-Trips_time_data_frame %>% 
+  group_by(Users,Hours_Begin) %>% 
+summarise(
+  average_trips=mean(Trip_Time),
+  total_trips=sum(Trip_Time),
+  number_trips=n())
+View(ride_hours)
+#Number of Trips per hour
+ride_hours %>% 
+  ggplot(aes(x=Hours_Begin,y=number_trips,fill=Users))+geom_col(position = "dodge")+scale_y_continuous()+
+  labs(title = "Number of Trips per Hours",caption = "Figure 1",x="hour of the day",y="number of Trips",)+
+  theme()
+#Average Number of Trips per hour
+ride_hours %>% 
+  ggplot(aes(x=Hours_Begin,y=average_trips,fill=Users))+geom_col(position = "dodge")+scale_y_continuous()+
+  labs(title = "Average number of Trips per Hour",caption = "Figure 2",x="hour of the day",y="average number of Trips",)+
+  theme()
+#Total Number of Trips per hour
+ride_hours %>% 
+  ggplot(aes(x=Hours_Begin,y=total_trips,fill=Users))+geom_col(position = "dodge")+scale_y_continuous()+
+  labs(title = "total number of Trips per Hour",caption = "Figure 3",x="hour of the day",y="total number of Trips",)+
+  theme()
+ride_week<-Trips_time_data_frame %>% 
+  group_by(Users,Week_day) %>% 
+  summarise(
+    average_trips_week=mean(Trip_Time),
+    total_trips_week=sum(Trip_Time),
+    number_trips_week=n())
+#Number of trips per week
+ride_week %>% 
+  ggplot(aes(x=Week_day,y=number_trips_week,fill=Users))+geom_col(position = "dodge")+scale_y_continuous()+
+  labs(title = "number of Trips per week",caption = "Figure 4",x="Day of Week",y="number of Trips",)+
+  theme()
+#Average number of trips per week
+ride_week %>% 
+  ggplot(aes(x=Week_day,y=average_trips_week,fill=Users))+geom_col(position = "dodge")+scale_y_continuous()+
+  labs(title = "Average number of Trips per week",caption = "Figure 5",x="Day of Week",y="Average number of Trips",)+
+  theme()
+#Total number of trips per week
+ride_week %>% 
+  ggplot(aes(x=Week_day,y=total_trips_week,fill=Users))+geom_col(position = "dodge")+scale_y_continuous()+
+  labs(title = "Total number of Trips per week",caption = "Figure 6",x="Day of Week",y="Total number of Trips",)+
+  theme()
+#Conclusion
+install.packages("rmarkdown")
+install.packages("tidyverse")
+library(tidyverse)
+ride_day<-Trips_time_data_frame %>% 
+ group_by(Users,Day) %>% 
+  summarise(number_trips_day=n(),
+            avg_trip_day=mean(Trip_Time),
+            Total_trip_day=sum(Trip_Time)
+            )
+ride_day %>%  
+ggplot(aes(x=Day,y=number_trips_day,fill=Users))+geom_col(position = "dodge")+scale_y_continuous()+
+  labs(title = "number of Trips per day",caption = "Figure 7",x="number of Trips",y="Days",)+
+  theme()
+
+ride_day %>%  
+  ggplot(aes(x=Day,y=avg_trip_day,fill=Users))+geom_col(position = "dodge")+scale_y_continuous()+
+  labs(title = "Average number of Trips per day",caption = "Figure 8",x="Average number of Trips",y="Days",)+
+  theme()
+
+ride_day %>%  
+  ggplot(aes(x=Day,y=Total_trip_day,fill=Users))+geom_col(position = "dodge")+scale_y_continuous()+
+  labs(title = "Total number of Trips per day",caption = "Figure 9",x="Total number of Trips",y="Days",)+
+  theme()
+#Analysis based on type of bikes
+ride_bikes<-Trips_time_data_frame %>% 
+  group_by(Users,bikes,Trip_Time) %>% 
+  summarise(no_trips=n(),
+            average_no_trips=mean(Trip_Time),
+            Total_no_trips=sum(Trip_Time)
+            )
+ride_bikes %>% 
+  ggplot(aes(x=bikes,y=no_trips,fill=Users))+geom_col(position = "dodge")+scale_y_continuous()+
+  labs(title = "Number of Trips per Bikes",caption = "Figure 10",x="bike types",y="number of trips")+
+  theme()
+
+ride_bikes %>% 
+  ggplot(aes(x=bikes,y=average_no_trips,fill=Users))+geom_col(position = "dodge")+scale_y_continuous()+
+  labs(title = "Average Number of Trips per Bikes",caption = "Figure 11",x="bike types",y="Average number of trips")+
+  theme()
+
+ride_bikes %>% 
+  ggplot(aes(x=bikes,y=Total_no_trips,fill=Users))+geom_col(position = "dodge")+scale_y_continuous()+
+  labs(title = "Total Number of Trips per Bikes",caption = "Figure 12",x="bike types",y="Total number of trips")+
+  theme()
+#Analysis by Location
+starting_station<-Trip_point_data_frame %>% 
+  group_by(
+    Users,start_station_name,start_lat,start_lng) %>%
+  summarise(
+    no_of_trips=n(),
+    ) %>% 
+  arrange(-no_of_trips)
+View(starting_station)
+colSums(is.na(starting_station))
+View(starting_station)
+starting_station[1:10,] %>% 
+  ggplot(aes(no_of_trips,start_station_name,fill=Users))+
+  geom_col(position = "dodge")+labs(title = "10 most liked start station",caption = "Figure 13",x="Number of Trips",y="Station Names")+
+  theme()
+
+ending_station<-Trip_point_data_frame %>% 
+  group_by(
+    Users,end_station_name,end_lat,end_lng) %>% 
+  summarise(
+    no_of_trip_end=n()
+    ) %>%
+  arrange(-no_of_trip_end)
+View(ending_station)
+ending_station[1:10,] %>% 
+  ggplot(aes(no_of_trip_end,end_station_name,fill=Users))+
+  geom_col(position = "dodge")+labs(title = "10 most liked end stations",caption = "Figure 14", x="Number of Trips",y="Station Names")+
+  theme()
+#Conculsion
+
+#Exported files for further Analysis
+#write.csv(trip_3), trip_3.csv
+#write.csv(Trip_point_data_frame), Trip_point_data_frame.csv
+#write.csv(Trip_time_data_frame),Trip_time_data_frame.csv
+#write.csv(starting_station), starting_station.csv
+#write.csv(ending_station), ending_station.csv
+
+#Share
+#The analysis can be located here
+
+#Act
+#Marketing campaign should target the starting_station and ending_stations mostly used by casual rider.
